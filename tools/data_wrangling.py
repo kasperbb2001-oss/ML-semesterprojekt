@@ -52,9 +52,12 @@ def process_and_merge_data(uploaded_files: List[Any]) -> pd.DataFrame:
     # Try to clean up any str columns to numeric (if decimal/thousands didn't catch it)
     for col in merged_df.columns:
         if merged_df[col].dtype == 'object':
-            # Remove string artifacts, spaces, convert comma to dot
-            merged_df[col] = merged_df[col].astype(str).str.replace(r'\s+', '', regex=True).str.replace('.', '', regex=False).str.replace(',', '.', regex=False)
-            merged_df[col] = pd.to_numeric(merged_df[col], errors='coerce')
+            temp = merged_df[col].astype(str)
+            # Remove string artifacts, spaces, and specifically letters (like " kWh", " MWh")
+            temp = temp.str.replace(r'[^\d,\.-]', '', regex=True)
+            # Convert Danish logic to machine logic
+            temp = temp.str.replace('.', '', regex=False).str.replace(',', '.', regex=False)
+            merged_df[col] = pd.to_numeric(temp, errors='coerce')
             
     # Fill small gaps/NaNs (forward fill then backward fill for start)
     merged_df = merged_df.ffill().bfill()
