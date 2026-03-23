@@ -33,6 +33,9 @@ def process_and_merge_data(uploaded_files: List[Any]) -> pd.DataFrame:
             df.set_index('Datetime', inplace=True)
             df.drop(columns=['Dato', 'Time'], inplace=True, errors='ignore')
             
+            # Fjern evt. dobbeltregistreringer af tidsstempler for at undgå InvalidIndexError (f.eks. ved sommertid/vintertid skift)
+            df = df.loc[~df.index.duplicated(keep='first')]
+            
         dfs.append(df)
         
     if not dfs:
