@@ -50,6 +50,10 @@ if 'train_df' in st.session_state and 'test_df' in st.session_state:
         c1, c2 = st.columns(2)
         target_col = c1.selectbox("Vælg Forbrugsmåler til Analyse", common_cols)
         
+        # Brugerstyret følsomhed - gør det muligt at fange anomalier tættere på normalen (som blocks af zeros)
+        anomaly_percentage = c2.slider("Anomali Følsomhed (%)", min_value=1.0, max_value=25.0, value=2.0, step=0.5, 
+            help="Hvor mange procent af test-året (år 3) vil du betegne som fejl? Sæt den højere for at finde mindre tydelige anormalier (f.eks. vedvarende 0-målinger).")
+        
         # Default Features
         features = [target_col]
         # Include Out-Temp automatically if found logically to handle seasonality
@@ -57,14 +61,14 @@ if 'train_df' in st.session_state and 'test_df' in st.session_state:
         
         if temp_cols and temp_cols[0] != target_col:
             features.append(temp_cols[0])
-            c2.info(f"Modellen benytter desuden automatisk **`{temp_cols[0]}`** som støtte-variabel for at minimere false-positives under høj-/lavsæsoner.")
+            st.info(f"Modellen benytter desuden automatisk **`{temp_cols[0]}`** som støtte-variabel for at minimere false-positives under høj-/lavsæsoner.")
         else:
-            c2.warning("Ingen udendørs temperatur fundet - modellen kører rent univariat.")
+            st.warning("Ingen udendørs temperatur fundet - modellen kører rent univariat.")
 
         if st.button("🚀 Start Detection", type="primary", use_container_width=True):
             with st.spinner("Træner Isolation Forest model og søger efter afvigelser..."):
                 try:
-                    result_df = detect_anomalies(train_df, test_df, features)
+                    result_df = detect_anomalies(train_df, test_df, features, anomaly_percentage)
                     st.toast("Detektion 100% Gennemført!", icon="✅")
                     
                     st.subheader(f"Test Resultater: {target_col}")

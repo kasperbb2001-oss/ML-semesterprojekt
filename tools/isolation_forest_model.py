@@ -1,7 +1,7 @@
 import pandas as pd
 from sklearn.ensemble import IsolationForest
 
-def detect_anomalies(train_df: pd.DataFrame, test_df: pd.DataFrame, feature_columns: list) -> pd.DataFrame:
+def detect_anomalies(train_df: pd.DataFrame, test_df: pd.DataFrame, feature_columns: list, contamination_pct: float = 1.0) -> pd.DataFrame:
     """
     Trains an Isolation Forest model on historical train_df data using the specified feature_columns.
     Predicts outliers on test_df based on the learned seasonal baseload.
@@ -49,9 +49,9 @@ def detect_anomalies(train_df: pd.DataFrame, test_df: pd.DataFrame, feature_colu
     # regner vi "anomali-scoren" ud for hver time. Jo lavere score, jo mere ekstrem afvigelse.
     scores = model.decision_function(test_clean[model_features])
     
-    # Vi tvinger den her til at finde de 1% mærkeligste timer i det NUVÆRENDE test-år
+    # Vi tvinger den her til at finde de X% mærkeligste timer i det NUVÆRENDE test-år
     import numpy as np
-    threshold = np.percentile(scores, 1) # Find the 1% lowest scores
+    threshold = np.percentile(scores, contamination_pct) # Find the X% lowest scores
     
     predictions = [-1 if s <= threshold else 1 for s in scores]
     test_clean['Anomaly'] = predictions
