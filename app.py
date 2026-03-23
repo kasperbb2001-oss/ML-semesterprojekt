@@ -96,3 +96,6 @@ if 'train_df' in st.session_state and 'test_df' in st.session_state:
                     st.error(f"Fejl under udførelse af algoritmen: {str(e)}")
     else:
         st.error("Der blev ikke fundet nogen delte numeriske datakolonner imellem Train og Test.")
+        st.warning("Dette skyldes oftest, at datasættene bruger forskellige navne for den samme kolonne (f.eks. 'Mængde (2021)' vs 'Mængde (2022)') eller at alt data blev kasseret som ikke-tal.")
+        st.write("**Fundne Train-kolonner:**", list(train_df.columns))
+        st.write("**Fundne Test-kolonner:**", list(test_df.columns))
