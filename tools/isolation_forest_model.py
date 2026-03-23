@@ -23,7 +23,17 @@ def detect_anomalies(train_df: pd.DataFrame, test_df: pd.DataFrame, feature_colu
         train_clean['DayOfWeek'] = train_clean.index.dayofweek
         test_clean['Hour'] = test_clean.index.hour
         test_clean['DayOfWeek'] = test_clean.index.dayofweek
-        model_features = feature_columns + ['Hour', 'DayOfWeek']
+        
+        # Også tilknyt en beregning af HASTIGHEDEN hvormed forbruget ændrer sig.
+        # Hvis den pludselig falder fra 9 til 0, vil 'diff' funktionen råbe vagt i gevær.
+        diff_cols = []
+        for col in feature_columns:
+            diff_col_name = f"{col}_diff"
+            train_clean[diff_col_name] = train_clean[col].diff().fillna(0)
+            test_clean[diff_col_name] = test_clean[col].diff().fillna(0)
+            diff_cols.append(diff_col_name)
+            
+        model_features = feature_columns + ['Hour', 'DayOfWeek'] + diff_cols
     else:
         model_features = feature_columns
 
