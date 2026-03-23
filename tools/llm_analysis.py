@@ -47,7 +47,7 @@ def analyze_with_llm(test_df: pd.DataFrame, target_col: str) -> str:
                 {"role": "system", "content": system_prompt},
                 {"role": "user", "content": user_prompt}
             ],
-            model="llama3-70b-8192",  # Vi bruger den tungeste og klogeste Groq model
+            model="llama-3.3-70b-versatile",  # Opdateret model (70b-8192 er udgået)
             temperature=0.2, # Lidt kreativitet men primært analytisk
         )
         return response.choices[0].message.content
