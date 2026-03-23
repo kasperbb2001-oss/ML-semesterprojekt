@@ -53,3 +53,45 @@ def analyze_with_llm(test_df: pd.DataFrame, target_col: str) -> str:
         return response.choices[0].message.content
     except Exception as e:
         return f"Kunne ikke gennemføre LLM analysen på grund af følgende Cloud-fejl: {str(e)}"
+
+def generate_hourly_alarms(anomalies_df: pd.DataFrame, target_col: str) -> str:
+    """
+    Tager de specifikke timer hvor Isolation Forest fandt fejl, og beder 
+    Llama om at formulere det som en alarm-log (max 15 mest kritiske events).
+    """
+    api_key = os.getenv("GROQ_API_KEY")
+    if not api_key or anomalies_df.empty:
+        return "Ingen data eller API nøgle til rådighed for alarmer."
+        
+    client = Groq(api_key=api_key)
+    
+    # Sortér så vi tager de nyeste eller mest ekstreme (hvis vi havde scores, men her tager vi bare de første 20)
+    subset = anomalies_df.head(20)
+    
+    alarm_data = ""
+    for idx, row in subset.iterrows():
+        alarm_data += f"- Tid: {idx.strftime('%Y-%m-%d %H:%M')}, Værdi: {row[target_col]:.2f}\n"
+
+    system_prompt = (
+        "Du er et automatiseret alarm-system for en bygning. "
+        "Du modtager en liste over specifikke timer hvor en algoritme har fundet fejl. "
+        "Din opgave er at lave en kort, kontant 'Alarm Rapport' på DANSK. "
+        "Gruppér timer der ligger tæt op ad hinanden (samme dag/periode). "
+        "Forklar kort hvad den driftsansvarlige skal tjekke (f.eks 'Tjek om hovedmåleren er faldet ud' eller 'Højt uforklarligt forbrug om natten'). "
+        "Vær meget præcis med klokkeslættene."
+    )
+    
+    user_prompt = f"HER ER ALARM-LISTEN FOR '{target_col}':\n\n{alarm_data}"
+
+    try:
+        response = client.chat.completions.create(
+            messages=[
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": user_prompt}
+            ],
+            model="llama-3.3-70b-versatile",
+            temperature=0.1,
+        )
+        return response.choices[0].message.content
+    except Exception as e:
+        return f"Alarm-systemet fejlede: {e}"

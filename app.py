@@ -94,6 +94,15 @@ if 'train_df' in st.session_state and 'test_df' in st.session_state:
                     # Identify anomalies explicitly
                     anomalies_only = result_df[result_df['Anomaly'] == -1]
                     st.error(f"⚠️ **{len(anomalies_only)} specifikke datapunkter** er markeret som afvigelser (potentielle små lækager/fejl).")
+                    
+                    if not anomalies_only.empty:
+                        with st.expander("🔔 Se specifikke Alarmer (AI Analyse)", expanded=True):
+                            if st.button("🚨 Opret Alarm Rapport (Timebasis)", use_container_width=True):
+                                from tools.llm_analysis import generate_hourly_alarms
+                                with st.spinner("AI genererer alarm-log..."):
+                                    alarm_report = generate_hourly_alarms(anomalies_only, target_col)
+                                    st.warning(alarm_report)
+                                    
                     st.dataframe(anomalies_only.reset_index(), use_container_width=True)
                     
                 except Exception as e:
