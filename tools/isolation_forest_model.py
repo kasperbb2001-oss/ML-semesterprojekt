@@ -28,14 +28,22 @@ def detect_anomalies(train_df: pd.DataFrame, test_df: pd.DataFrame, feature_colu
         model_features = feature_columns
 
     # Isolation Forest setup
-    # Contamination set to 0.01 representing 1% of points logically being anomalies
-    model = IsolationForest(contamination=0.01, random_state=42)
+    # Vi sætter auto contamination under træningen for ren læring af strukturen.
+    model = IsolationForest(contamination='auto', random_state=42)
     
     # Train purely on Year 1 and Year 2 data
     model.fit(train_clean[model_features])
     
     # Predict exclusively on Year 3 data
-    predictions = model.predict(test_clean[model_features])
+    # Frem for at bruge modellens interne "threshold" fra træningen (hvilket kan give 0 anomalier i test),
+    # regner vi "anomali-scoren" ud for hver time. Jo lavere score, jo mere ekstrem afvigelse.
+    scores = model.decision_function(test_clean[model_features])
+    
+    # Vi tvinger den her til at finde de 1% mærkeligste timer i det NUVÆRENDE test-år
+    import numpy as np
+    threshold = np.percentile(scores, 1) # Find the 1% lowest scores
+    
+    predictions = [-1 if s <= threshold else 1 for s in scores]
     test_clean['Anomaly'] = predictions
     
     return test_clean
