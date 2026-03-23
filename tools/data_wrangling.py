@@ -18,23 +18,18 @@ def process_and_merge_data(uploaded_files: List[Any]) -> pd.DataFrame:
         
         # Datetime processing
         if 'Dato' in df.columns and 'Time' in df.columns:
-            # Extract start time from Time col, e.g., "00:00-01:00" -> "00:00"
+            # Extract start time from Time col, e.g., "00:00-01:00" -> "00:00", or "  00:00 " --> "00:00"
+            # Some files might have "00:00 - 01:00"
             start_hours = df['Time'].astype(str).str.split('-').str[0].str.strip()
             
-            # Create a string matching '%d.%m.%Y %H:%M'
+            # Create a string for datetime
             datetime_str = df['Dato'].astype(str) + ' ' + start_hours
             
-            # Convert to pandas datetime
-            df['Datetime'] = pd.to_datetime(
-                datetime_str, 
-                format='%d.%m.%Y %H:%M', 
-                errors='coerce'
-            )
+            # Convert to pandas datetime more flexibly
+            df['Datetime'] = pd.to_datetime(datetime_str, dayfirst=True, errors='coerce')
             
-            # Drop invalid dates and proceed with clean ones
+            # Kun drop rows hvor datetime fejlede
             df.dropna(subset=['Datetime'], inplace=True)
-            
-            # Set Datetime as index
             df.set_index('Datetime', inplace=True)
             df.drop(columns=['Dato', 'Time'], inplace=True, errors='ignore')
             
@@ -65,8 +60,11 @@ def process_and_merge_data(uploaded_files: List[Any]) -> pd.DataFrame:
     # Drop rows that are completely empty across all non-index columns
     merged_df.dropna(how='all', inplace=True)
     
-    # SMID tomme kolonner ud (f.eks. tomme CO2 eller pris-kolonner)
-    merged_df.dropna(axis=1, how='all', inplace=True)
+    # KUN drop tomme kolonner, HVIS resultatet ikke bliver helt tomt
+    if len(merged_df) > 0:
+        cleaned_df = merged_df.dropna(axis=1, how='all')
+        if not cleaned_df.empty and len(cleaned_df.columns) > 0:
+            merged_df = cleaned_df
     
     # Sort index chronologically
     merged_df.sort_index(inplace=True)
