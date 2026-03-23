@@ -14,7 +14,7 @@ def process_and_merge_data(uploaded_files: List[Any]) -> pd.DataFrame:
     
     for file in uploaded_files:
         # Read the semicolon-separated file
-        df = pd.read_csv(file, sep=';', encoding='utf-8')
+        df = pd.read_csv(file, sep=';', encoding='utf-8', decimal=',', thousands='.')
         
         # Datetime processing
         if 'Dato' in df.columns and 'Time' in df.columns:
@@ -49,11 +49,21 @@ def process_and_merge_data(uploaded_files: List[Any]) -> pd.DataFrame:
     # Remove potentially duplicated columns with identical names entirely
     merged_df = merged_df.loc[:, ~merged_df.columns.duplicated()]
     
+    # Try to clean up any str columns to numeric (if decimal/thousands didn't catch it)
+    for col in merged_df.columns:
+        if merged_df[col].dtype == 'object':
+            # Remove string artifacts, spaces, convert comma to dot
+            merged_df[col] = merged_df[col].astype(str).str.replace(r'\s+', '', regex=True).str.replace('.', '', regex=False).str.replace(',', '.', regex=False)
+            merged_df[col] = pd.to_numeric(merged_df[col], errors='coerce')
+            
     # Fill small gaps/NaNs (forward fill then backward fill for start)
     merged_df = merged_df.ffill().bfill()
     
     # Drop rows that are completely empty across all non-index columns
     merged_df.dropna(how='all', inplace=True)
+    
+    # SMID tomme kolonner ud (f.eks. tomme CO2 eller pris-kolonner)
+    merged_df.dropna(axis=1, how='all', inplace=True)
     
     # Sort index chronologically
     merged_df.sort_index(inplace=True)
