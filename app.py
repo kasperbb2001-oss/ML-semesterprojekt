@@ -98,6 +98,20 @@ if 'train_df' in st.session_state and 'test_df' in st.session_state:
                     
                 except Exception as e:
                     st.error(f"Fejl under udførelse af algoritmen: {str(e)}")
+
+        st.divider()
+        st.subheader("🤖 AI Assisteret Drifts-Analyse (via Groq)")
+        st.markdown("Spørg den store `Llama 3` model om et overblik. Den forstår kontekst bedre end den matematiske model (f.eks. vedvarende 0-målinger over dage).")
+        
+        if st.button("🔎 Analysér hele året med LLM", use_container_width=True):
+            with st.spinner("Opsummerer dagligt forbrug og sender til Groq Cloud (Llama 3)... Opretter Drifts-rapport..."):
+                try:
+                    from tools.llm_analysis import analyze_with_llm
+                    analysis_result = analyze_with_llm(test_df, target_col)
+                    st.info(analysis_result)
+                except Exception as e:
+                    st.error(f"Fejl ved LLM Kald: {e}")
+                    
     else:
         st.error("Der blev ikke fundet nogen delte numeriske datakolonner imellem Train og Test.")
         st.warning("Dette skyldes oftest, at datasættene bruger forskellige navne for den samme kolonne (f.eks. 'Mængde (2021)' vs 'Mængde (2022)') eller at alt data blev kasseret som ikke-tal.")
